@@ -1,28 +1,30 @@
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+	"errors"
+	"os"
+
+	"github.com/apex/log"
+	"github.com/apex/log/handlers/json"
+	"github.com/apex/log/handlers/multi"
+	"github.com/apex/log/handlers/text"
 )
 
-import "os"
-
-var wg sync.WaitGroup
-
 func main() {
-	wg.Add(3)
-	for i := 1; i < 4; i++ {
-		go osExitInGoRoutine(i)
-	}
-	wg.Wait()
-}
+	f, _ := os.Create("testlog.json")
+	log.SetHandler(multi.New(
+		text.New(os.Stderr),
+		json.New(f),
+	))
 
-func osExitInGoRoutine(routineNum int) {
-	defer wg.Done()
-	fmt.Printf("routine %v: starting \n", routineNum)
-	time.Sleep(1000 * time.Millisecond)
-	fmt.Printf("routine %v: woke up and ready to do more stuff \n", routineNum)
-	fmt.Printf("routine %v: about to exit", routineNum)
-	os.Exit(1)
+	ctx := log.WithFields(log.Fields{
+		"file": "something.png",
+		"type": "image/png",
+		"user": "tobi",
+	})
+
+	ctx.Info("upload")
+	ctx.Info("upload complete")
+	ctx.Warn("upload retry")
+	ctx.WithError(errors.New("unauthorized")).Error("upload failed")
 }
